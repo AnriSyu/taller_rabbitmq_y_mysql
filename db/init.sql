@@ -1,0 +1,19 @@
+CREATE DATABASE IF NOT EXISTS pagos_db;
+USE pagos_db;
+
+CREATE TABLE IF NOT EXISTS pagos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    referencia VARCHAR(50) NOT NULL,
+    valor DECIMAL(10, 2) NOT NULL,
+    medio VARCHAR(50) NOT NULL,
+    fecha_registro TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3),
+    estado ENUM('REGISTRADO', 'PROCESADO') DEFAULT 'REGISTRADO'
+);
+
+CREATE TABLE IF NOT EXISTS procesamientos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pago_id INT NOT NULL,
+    fecha_procesamiento TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3),
+    resultado TEXT NOT NULL,
+    FOREIGN KEY (pago_id) REFERENCES pagos(id)
+);

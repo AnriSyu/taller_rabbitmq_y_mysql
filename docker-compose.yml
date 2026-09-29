@@ -1,0 +1,75 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: taller_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: pagos_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: taller_rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: ./api
+    container_name: taller_api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_NAME=pagos_db
+      - RABBIT_HOST=rabbitmq
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  consumer:
+    build: ./consumer
+    container_name: taller_consumer
+    restart: always
+    environment:
+      - DB_HOST=db
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_NAME=pagos_db
+      - RABBIT_HOST=rabbitmq
+      - PROCESSING_DELAY=${PROCESSING_DELAY:-4}
+      - FAIL_ON_PROCESS=${FAIL_ON_PROCESS:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
